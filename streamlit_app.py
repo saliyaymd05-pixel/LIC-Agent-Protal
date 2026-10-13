@@ -34,19 +34,12 @@ st.markdown(
             background-color: #3B82F6;
             color: white;
         }
-        .metric-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-left: 5px solid #1E40AF;
-        }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# --- INITIALIZE SESSION STATE ---
+# --- INITIALIZE SESSION STATE (FIXED TO PRESERVE REGISTERED USERS) ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "current_user" not in st.session_state:
@@ -54,7 +47,7 @@ if "current_user" not in st.session_state:
 if "user_role" not in st.session_state:
     st.session_state.user_role = "Agent"
 
-# Pre-registered users dictionary (Email: {password, name, role})
+# Ensure users_db persists across reruns so newly registered accounts aren't wiped
 if "users_db" not in st.session_state:
     st.session_state.users_db = {
         "agent@licindia.com": {
@@ -169,7 +162,7 @@ def auth_screen():
         )
 
         with st.form("login_form"):
-            email = st.text_input("Email Address", value="agent@licindia.com")
+            email = st.text_input("Email Address")
             password = st.text_input("Password", type="password")
             submit_login = st.form_submit_button("Login")
 
@@ -188,17 +181,17 @@ def auth_screen():
                     else:
                         st.error("Invalid email or password.")
                 else:
-                    st.error("No account found. Please register first.")
+                    st.error(
+                        "No account found with this email. Please register first."
+                    )
 
     with tab_register:
         st.subheader("Create New Agent Account")
         with st.form("register_form"):
             reg_name = st.text_input("Full Name")
-            reg_email = st.text_input("Email Address")
+            reg_email = st.text_input("Email Address (for login)")
             reg_mobile = st.text_input("Mobile Number")
-            reg_password = st.text_input(
-                "Password (Min 6 chars recommended)", type="password"
-            )
+            reg_password = st.text_input("Password", type="password")
             reg_confirm = st.text_input("Confirm Password", type="password")
             terms = st.checkbox("I agree to Terms & Conditions")
             submit_reg = st.form_submit_button("Register Account")
@@ -213,14 +206,14 @@ def auth_screen():
                 elif not terms:
                     st.error("You must agree to the Terms and Conditions.")
                 else:
-                    # Instant registration without cumbersome external OTP
+                    # Save user persistently in session state database
                     st.session_state.users_db[reg_email] = {
                         "password": reg_password,
                         "name": reg_name,
                         "role": "Agent",
                     }
                     st.success(
-                        "Registration successful! You can now log in using your credentials in the Login tab."
+                        "✅ Registration successful! You can now switch to the 'Secure Login' tab and log in with your email and password."
                     )
 
 
@@ -341,9 +334,7 @@ def main_app():
                         st.error("Name and Mobile Number are required.")
 
         st.subheader("All Clients Directory")
-        search = st.text_input(
-            "🔍 Search Client by Name or Mobile", ""
-        )
+        search = st.text_input("🔍 Search Client by Name or Mobile", "")
         df_clients = st.session_state.clients_db
         if search:
             df_clients = df_clients[
@@ -456,13 +447,6 @@ def main_app():
                 ["Year 1 (25%)", "Year 2 (15%)", "Years 3–5 (10%)", "Renewal (5%)"],
             )
 
-        rates = {
-            "Year 1 (25%)": 0.25,
-            "Year 2 (15% )": 0.15,
-            "Years 3–5 (10%)": 0.10,
-            "Renewal (5%)": 0.05,
-        }
-        # Fallback rate parse
         rate_val = 0.25
         if "15" in year_policy:
             rate_val = 0.15
