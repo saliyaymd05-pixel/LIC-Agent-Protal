@@ -39,33 +39,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- INITIALIZE SESSION STATE (FIXED TO PRESERVE REGISTERED USERS) ---
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "current_user" not in st.session_state:
-    st.session_state.current_user = None
+# --- INITIALIZE SESSION STATE ---
 if "user_role" not in st.session_state:
     st.session_state.user_role = "Agent"
-
-# Ensure users_db persists across reruns so newly registered accounts aren't wiped
-if "users_db" not in st.session_state:
-    st.session_state.users_db = {
-        "agent@licindia.com": {
-            "password": "Password123@",
-            "name": "Rajesh Kumar",
-            "role": "Agent",
-        },
-        "admin@licindia.com": {
-            "password": "Password123@",
-            "name": "Admin User",
-            "role": "Admin",
-        },
-        "manager@licindia.com": {
-            "password": "Password123@",
-            "name": "Sunita Sharma",
-            "role": "Manager",
-        },
-    }
 
 # Mock Clients Database
 if "clients_db" not in st.session_state:
@@ -142,90 +118,10 @@ if "leads_db" not in st.session_state:
     )
 
 
-# --- AUTHENTICATION & REGISTRATION SCREEN ---
-def auth_screen():
-    st.markdown(
-        "<h1 style='text-align: center; color: #1E40AF;'>🛡️ AgentPro — LIC Agent Management System</h1>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        "<p style='text-align: center; color: #64748B;'>Professional Management & Policy Tracking System for LIC Agents</p>",
-        unsafe_allow_html=True,
-    )
-
-    tab_login, tab_register = st.tabs(["🔐 Secure Login", "📝 Agent Registration"])
-
-    with tab_login:
-        st.subheader("Sign In to Your Dashboard")
-        st.info(
-            "💡 **Demo Credentials:** Email: `agent@licindia.com` | Password: `Password123@`"
-        )
-
-        with st.form("login_form"):
-            email = st.text_input("Email Address")
-            password = st.text_input("Password", type="password")
-            submit_login = st.form_submit_button("Login")
-
-            if submit_login:
-                if not email or not password:
-                    st.error("Please enter both email and password.")
-                elif email in st.session_state.users_db:
-                    if st.session_state.users_db[email]["password"] == password:
-                        st.session_state.logged_in = True
-                        st.session_state.current_user = email
-                        st.session_state.user_role = st.session_state.users_db[
-                            email
-                        ]["role"]
-                        st.success("Login successful! Redirecting...")
-                        st.rerun()
-                    else:
-                        st.error("Invalid email or password.")
-                else:
-                    st.error(
-                        "No account found with this email. Please register first."
-                    )
-
-    with tab_register:
-        st.subheader("Create New Agent Account")
-        with st.form("register_form"):
-            reg_name = st.text_input("Full Name")
-            reg_email = st.text_input("Email Address (for login)")
-            reg_mobile = st.text_input("Mobile Number")
-            reg_password = st.text_input("Password", type="password")
-            reg_confirm = st.text_input("Confirm Password", type="password")
-            terms = st.checkbox("I agree to Terms & Conditions")
-            submit_reg = st.form_submit_button("Register Account")
-
-            if submit_reg:
-                if not reg_name or not reg_email or not reg_password:
-                    st.error("Please fill in all required fields.")
-                elif reg_email in st.session_state.users_db:
-                    st.error("This email is already registered. Please log in.")
-                elif reg_password != reg_confirm:
-                    st.error("Passwords do not match.")
-                elif not terms:
-                    st.error("You must agree to the Terms and Conditions.")
-                else:
-                    # Save user persistently in session state database
-                    st.session_state.users_db[reg_email] = {
-                        "password": reg_password,
-                        "name": reg_name,
-                        "role": "Agent",
-                    }
-                    st.success(
-                        "✅ Registration successful! You can now switch to the 'Secure Login' tab and log in with your email and password."
-                    )
-
-
-# --- MAIN DASHBOARD & MODULES ---
+# --- MAIN APPLICATION (DIRECT ACCESS) ---
 def main_app():
-    user_email = st.session_state.current_user
-    user_data = st.session_state.users_db.get(
-        user_email, {"name": "Agent", "role": "Agent"}
-    )
-
     # Sidebar Navigation
-    st.sidebar.markdown(f"### 🛡️ Welcome, {user_data['name']}")
+    st.sidebar.markdown("### 🛡️ AgentPro — LIC System")
     st.sidebar.markdown(f"**Role:** {st.session_state.user_role}")
     st.sidebar.markdown("---")
 
@@ -243,12 +139,6 @@ def main_app():
             "📈 Reports & Analytics",
         ],
     )
-
-    st.sidebar.markdown("---")
-    if st.sidebar.button("🚪 Logout"):
-        st.session_state.logged_in = False
-        st.session_state.current_user = None
-        st.rerun()
 
     # 1. DASHBOARD
     if menu == "📊 Dashboard":
@@ -524,8 +414,5 @@ def main_app():
             )
 
 
-# --- MAIN ROUTER ---
-if not st.session_state.logged_in:
-    auth_screen()
-else:
-    main_app()
+# Run main app directly without login
+main_app()
